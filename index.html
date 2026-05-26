@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Idriss Hassan Djibrine | Portfolio</title>
+    <link rel="stylesheet" href="style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+  </head>
+  <body>
+    <header>
+      <nav class="navbar">
+        <div class="logo">
+          <img id="logo" src="/images/logo1.jpg" alt="Logo" width="45px" />
+          Idriss Hassan Djibrine
+        </div>
+
+        <ul class="nav-links" id="navLinks">
+          <li><a href="#home">Accueil</a></li>
+          <li><a href="#about">À propos</a></li>
+          <li><a href="#skills">Compétences</a></li>
+          <li><a href="#projects">Projets</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+        
+        <div class="menu-toggle" id="menuToggle">
+          <i class="fa-solid fa-bars"></i>
+        </div>
+
+        
+        </div>
+      </nav>
+    </header>
+
+    <section class="hero" id="home">
+      <div class="hero-content">
+        <h1>Bonjour, je m'appelle <span>Idriss Hassan Djibrine</span></h1>
+        <h2>Étudiant en informatique de gestion</h2>
+        <p>
+          Passionné par le développement web, les nouvelles technologies et la
+          création de solutions numériques modernes.
+        </p>
+
+        <a href="#contact" class="btn">Me contacter</a>
+      </div>
+
+      <div class="hero-image">
+        <img src="/images/image.jpg" alt="Photo de profil" />
+      </div>
+    </section>
+
+    <section class="about" id="about">
+      <h2 class="section-title">À propos</h2>
+      
+      <p>
+        Je suis étudiant en informatique de gestion, passionné par le
+        développement web et les technologies modernes. J’aime créer des
+        interfaces modernes et développer des projets innovants en utilisant
+        HTML, CSS, JavaScript et d'autres technologies.
+      </p>
+    
+      <p>
+        Je tiens à exprimer ma profonde gratitude à tous ceux qui m'ont soutenu
+        et encouragé tout au long de mon parcours académique. Votre soutien a
+        été une source d'inspiration et de motivation pour moi, et je suis
+        reconnaissant pour chaque encouragement, conseil et geste de soutien que
+        j'ai reçu. Merci à tous ceux qui ont contribué à mon succès et à ma
+        croissance personnelle.
+      </p>
+      
+    </section>
+
+    <section class="skills" id="skills">
+      <h2 class="section-title">Compétences</h2>
+
+      <div class="skills-container">
+        <div class="skill-card">HTML</div>
+        <div class="skill-card">CSS</div>
+        <div class="skill-card">JavaScript</div>
+        <div class="skill-card">React</div>
+        <div class="skill-card">Tailwind CSS</div>
+        <div class="skill-card">Supabase</div>
+      </div>
+    </section>
+
+    <section class="projects" id="projects">
+      <h2 class="section-title">Mes Projets</h2>
+
+      <div class="project-container">
+        <div class="project-card">
+          <h3>Plateforme d'annonces en ligne</h3>
+          <p>
+            Projet de fin d’étude permettant aux utilisateurs de publier,
+            rechercher et contacter des annonceurs.
+          </p>
+          <button class="btn">Voir projet</button>
+        </div>
+
+        <div class="project-card">
+          <h3>Portfolio Personnel</h3>
+          <p>
+            Site web moderne présentant mes compétences, projets et informations
+            professionnelles.
+          </p>
+          <button class="btn">Voir projet</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="contact" id="contact">
+      <h2 class="section-title">Contact</h2>
+
+      <form id="contactForm">
+        <input id="senderName" type="text" name="name" placeholder="Votre nom" required />
+        <input id="senderEmail" type="email" name="email" placeholder="Votre email" required />
+        <textarea id="senderMessage" name="message" placeholder="Votre message" required></textarea>
+        <button class="btn" type="submit">Envoyer</button>
+      </form>
+
+      <div class="form-status" id="formStatus" aria-live="polite"></div>
+
+      <div class="message-inbox">
+        <div class="message-inbox-header">
+          <h3>Messages reçus</h3>
+          <button id="clearMessagesBtn" class="btn btn-secondary" type="button">
+            Supprimer tous les messages
+          </button>
+        </div>
+        <div id="messageInbox"></div>
+      </div>
+    </section>
+
+    <div id="deletePasswordModal" class="delete-modal hidden" aria-hidden="true">
+      <div class="delete-modal-card">
+        <h3 id="deleteModalTitle">Autorisation de suppression</h3>
+        <p id="deleteModalDescription">
+          Entrez le mot de passe pour continuer.
+        </p>
+
+        <label class="delete-password-field" for="deletePasswordInput">
+          <input
+            id="deletePasswordInput"
+            type="password"
+            autocomplete="current-password"
+            placeholder="Mot de passe"
+          />
+          <button id="toggleDeletePasswordBtn" type="button" class="btn btn-secondary">
+            Afficher
+          </button>
+        </label>
+
+        <div class="delete-modal-actions">
+          <button id="cancelDeleteBtn" type="button" class="btn btn-secondary">
+            Annuler
+          </button>
+          <button id="confirmDeleteBtn" type="button" class="btn">
+            Continuer
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>© 2026 Idriss Hassan Djibrine | Tous droits réservés</p>
+    </footer>
+
+    <script
+      type="text/javascript"
+      src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"
+    ></script>
+    <script src="script.js"></script>
+  </body>
+</html>
