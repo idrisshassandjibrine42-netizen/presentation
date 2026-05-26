@@ -55,7 +55,7 @@ async function fetchMessagesFromSupabase() {
   const { data, error } = await supabaseClient
     .from(supabaseTable)
     .select("*")
-    .order("createdAt", { ascending: false });
+    .order("created_at", { ascending: false });
 
   if (error) {
     console.error(
@@ -68,7 +68,7 @@ async function fetchMessagesFromSupabase() {
   return normalizeMessages(
     (data || []).map((message) => ({
       ...message,
-      createdAt: message.createdAt || message.created_at,
+      createdAt: message.created_at || message.createdAt,
     })),
   );
 }
@@ -83,7 +83,7 @@ async function saveMessageToSupabase(message) {
       name: message.name,
       email: message.email,
       message: message.message,
-      createdAt: message.createdAt,
+      created_at: message.createdAt,
     },
   ]);
 
@@ -296,7 +296,7 @@ function authorizeDeletion() {
   if (deletePasswordInput.value !== deletePassword) {
     if (formStatus) {
       formStatus.textContent =
-        "Accès refusé. Seul l’administrateur peut supprimer des messages.";
+        "Accès refusé. Seul l'administrateur peut supprimer des messages.";
     }
     return false;
   }
@@ -348,7 +348,7 @@ async function sendContactMessage(name, email, message) {
 
   if (hasMissingConfig) {
     throw new Error(
-      "EmailJS n’est pas configuré correctement. Vérifie les clés dans le fichier script.js.",
+      "EmailJS n'est pas configuré correctement. Vérifie les clés dans le fichier script.js.",
     );
   }
 
@@ -374,7 +374,7 @@ if (contactForm) {
     if (!name || !email || !message) {
       if (formStatus) {
         formStatus.textContent =
-          "Veuillez remplir tous les champs avant d’envoyer votre message.";
+          "Veuillez remplir tous les champs avant d'envoyer votre message.";
       }
       return;
     }
@@ -401,13 +401,7 @@ if (contactForm) {
     let emailError = null;
     let savedOnSupabase = false;
 
-    try {
-      await sendContactMessage(name, email, message);
-    } catch (error) {
-      emailError = error;
-      console.warn("L’envoi par email a échoué", error);
-    }
-
+    // Enregistrer le message dans Supabase en PRIORITE
     if (useSupabase) {
       try {
         await saveMessageToSupabase(newMessage);
@@ -417,21 +411,31 @@ if (contactForm) {
       }
     }
 
+    // Fallback: sauvegarder localement si Supabase a échoué
     if (!savedOnSupabase) {
       const messages = getLocalMessages();
       messages.push({ ...newMessage, status: "local-only" });
       saveLocalMessages(messages);
     }
 
+    // Essayer d'envoyer l'email (optionnel)
+    try {
+      await sendContactMessage(name, email, message);
+    } catch (error) {
+      emailError = error;
+      console.warn("L'envoi par email a échoué", error);
+    }
+
     await loadMessages();
     contactForm.reset();
 
     if (formStatus) {
+      const baseMessage = savedOnSupabase
+        ? "Votre message a été partagé avec tous!"
+        : "Message enregistré localement.";
       formStatus.textContent = emailError
-        ? "L’envoi par email a échoué. Le message est enregistré localement ou dans Supabase."
-        : useSupabase
-          ? "Message envoyé et partagé via Supabase."
-          : "Message envoyé par email et enregistré localement.";
+        ? baseMessage + " (Email non envoyé)"
+        : baseMessage;
     }
 
     if (submitButton) {
@@ -503,4 +507,12 @@ window.addEventListener("scroll", () => {
   });
 });
 
+// Charger les messages au démarrage
 loadMessages();
+
+// Rafraîchir les messages toutes les 2 secondes pour afficher les nouveaux en temps réel
+if (useSupabase) {
+  setInterval(() => {
+    loadMessages();
+  }, 2000);
+}
