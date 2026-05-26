@@ -19,6 +19,113 @@ const emailjsPublicKey = "DPjoBQNkGzYtckTHL";
 const emailjsServiceId = "service_tw1cv5z";
 const emailjsTemplateId = "template_mw0rm4d";
 
+// Configurez ces valeurs avec votre projet Supabase.
+const supabaseUrl = "https://nhyefzldxwfvqujbqraa.supabase.co";
+const supabaseAnonKey = "sb_publishable_l_pP8NlpmspvF1GU6zodYQ_KAOpTUcG";
+const supabaseTable = "messages";
+
+const useSupabase =
+  Boolean(supabaseUrl && supabaseAnonKey) &&
+  !supabaseUrl.includes("YOUR_") &&
+  !supabaseAnonKey.includes("YOUR_");
+
+const supabaseClient = useSupabase
+  ? supabase.createClient(supabaseUrl, supabaseAnonKey)
+  : null;
+
+function getLocalMessages() {
+  try {
+    const saved = localStorage.getItem(storageKey);
+    return normalizeMessages(saved ? JSON.parse(saved) : []);
+  } catch (error) {
+    console.error("Impossible de lire les messages locaux", error);
+    return [];
+  }
+}
+
+function saveLocalMessages(messages) {
+  localStorage.setItem(storageKey, JSON.stringify(messages));
+}
+
+async function fetchMessagesFromSupabase() {
+  if (!supabaseClient) {
+    return getLocalMessages();
+  }
+
+  const { data, error } = await supabaseClient
+    .from(supabaseTable)
+    .select("*")
+    .order("createdAt", { ascending: false });
+
+  if (error) {
+    console.error(
+      "Erreur Supabase lors de la récupération des messages",
+      error,
+    );
+    return getLocalMessages();
+  }
+
+  return normalizeMessages(
+    (data || []).map((message) => ({
+      ...message,
+      createdAt: message.createdAt || message.created_at,
+    })),
+  );
+}
+
+async function saveMessageToSupabase(message) {
+  if (!supabaseClient) {
+    return;
+  }
+
+  const { error } = await supabaseClient.from(supabaseTable).insert([
+    {
+      name: message.name,
+      email: message.email,
+      message: message.message,
+      createdAt: message.createdAt,
+    },
+  ]);
+
+  if (error) {
+    console.error("Erreur Supabase lors de l'enregistrement du message", error);
+    throw error;
+  }
+}
+
+async function deleteMessageFromSupabase(messageId) {
+  if (!supabaseClient) {
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from(supabaseTable)
+    .delete()
+    .eq("id", messageId);
+
+  if (error) {
+    console.error("Erreur Supabase lors de la suppression du message", error);
+  }
+}
+
+async function clearMessagesFromSupabase() {
+  if (!supabaseClient) {
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from(supabaseTable)
+    .delete()
+    .neq("id", "");
+
+  if (error) {
+    console.error(
+      "Erreur Supabase lors de la suppression de tous les messages",
+      error,
+    );
+  }
+}
+
 if (menuToggle && navLinks) {
   menuToggle.addEventListener("click", function () {
     navLinks.classList.toggle("active");
@@ -112,12 +219,16 @@ function renderMessages(messages) {
   messageInbox.appendChild(list);
 }
 
-function loadMessages() {
+async function loadMessages() {
   try {
-    const saved = localStorage.getItem(storageKey);
-    const messages = normalizeMessages(saved ? JSON.parse(saved) : []);
+    const messages = useSupabase
+      ? await fetchMessagesFromSupabase()
+      : getLocalMessages();
 
-    saveMessages(messages);
+    if (!useSupabase) {
+      saveLocalMessages(messages);
+    }
+
     renderMessages(messages);
   } catch (error) {
     console.error("Impossible de charger les messages", error);
@@ -126,7 +237,9 @@ function loadMessages() {
 }
 
 function saveMessages(messages) {
-  localStorage.setItem(storageKey, JSON.stringify(messages));
+  if (!useSupabase) {
+    saveLocalMessages(messages);
+  }
 }
 
 function closeDeleteModal() {
@@ -191,25 +304,33 @@ function authorizeDeletion() {
   return true;
 }
 
-function deleteMessage(messageId) {
-  const normalizedMessages = normalizeMessages(
-    JSON.parse(localStorage.getItem(storageKey) || "[]"),
-  );
-  const nextMessages = normalizedMessages.filter(
-    (message) => message.id !== messageId,
-  );
+async function deleteMessage(messageId) {
+  if (useSupabase) {
+    await deleteMessageFromSupabase(messageId);
+  } else {
+    const normalizedMessages = normalizeMessages(getLocalMessages());
+    const nextMessages = normalizedMessages.filter(
+      (message) => message.id !== messageId,
+    );
 
-  saveMessages(nextMessages);
-  loadMessages();
+    saveLocalMessages(nextMessages);
+  }
+
+  await loadMessages();
 
   if (formStatus) {
     formStatus.textContent = "Message supprimé.";
   }
 }
 
-function clearMessages() {
-  localStorage.removeItem(storageKey);
-  loadMessages();
+async function clearMessages() {
+  if (useSupabase) {
+    await clearMessagesFromSupabase();
+  } else {
+    localStorage.removeItem(storageKey);
+  }
+
+  await loadMessages();
 
   if (formStatus) {
     formStatus.textContent = "Tous les messages ont été supprimés.";
@@ -270,64 +391,67 @@ if (contactForm) {
       formStatus.textContent = "Envoi du message en cours...";
     }
 
+    const newMessage = {
+      name,
+      email,
+      message,
+      createdAt: new Date().toISOString(),
+    };
+
+    let emailError = null;
+    let savedOnSupabase = false;
+
     try {
       await sendContactMessage(name, email, message);
-
-      const messages = JSON.parse(localStorage.getItem(storageKey) || "[]");
-      const newMessage = {
-        name,
-        email,
-        message,
-        createdAt: new Date().toISOString(),
-      };
-
-      messages.push(newMessage);
-      saveMessages(messages);
-      loadMessages();
-
-      contactForm.reset();
-
-      if (formStatus) {
-        formStatus.textContent =
-          "Message envoyé par email avec succès. Il est aussi enregistré sur la page.";
-      }
     } catch (error) {
-      const messages = JSON.parse(localStorage.getItem(storageKey) || "[]");
-      const newMessage = {
-        name,
-        email,
-        message,
-        createdAt: new Date().toISOString(),
-        status: "local-only",
-      };
+      emailError = error;
+      console.warn("L’envoi par email a échoué", error);
+    }
 
-      messages.push(newMessage);
-      saveMessages(messages);
-      loadMessages();
+    if (useSupabase) {
+      try {
+        await saveMessageToSupabase(newMessage);
+        savedOnSupabase = true;
+      } catch (error) {
+        console.warn("Impossible d'enregistrer sur Supabase", error);
+      }
+    }
 
-      if (formStatus) {
-        formStatus.textContent =
-          error.message ||
-          "L’envoi par email a échoué. Le message a été enregistré localement pour vérification.";
-      }
-    } finally {
-      if (submitButton) {
-        submitButton.disabled = false;
-        submitButton.textContent = originalButtonText;
-      }
+    if (!savedOnSupabase) {
+      const messages = getLocalMessages();
+      messages.push({ ...newMessage, status: "local-only" });
+      saveLocalMessages(messages);
+    }
+
+    await loadMessages();
+    contactForm.reset();
+
+    if (formStatus) {
+      formStatus.textContent = emailError
+        ? "L’envoi par email a échoué. Le message est enregistré localement ou dans Supabase."
+        : useSupabase
+          ? "Message envoyé et partagé via Supabase."
+          : "Message envoyé par email et enregistré localement.";
+    }
+
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = originalButtonText;
     }
   });
 }
 
 if (clearMessagesBtn) {
   clearMessagesBtn.addEventListener("click", () => {
-    const savedMessages = localStorage.getItem(storageKey);
+    if (!useSupabase) {
+      const savedMessages = localStorage.getItem(storageKey);
 
-    if (!savedMessages) {
-      if (formStatus) {
-        formStatus.textContent = "Aucun message à supprimer.";
+      if (!savedMessages) {
+        if (formStatus) {
+          formStatus.textContent = "Aucun message à supprimer.";
+        }
+        return;
       }
-      return;
     }
 
     openDeleteModal("all");
@@ -349,7 +473,7 @@ if (cancelDeleteBtn) {
 }
 
 if (confirmDeleteBtn) {
-  confirmDeleteBtn.addEventListener("click", () => {
+  confirmDeleteBtn.addEventListener("click", async () => {
     if (!authorizeDeletion()) {
       return;
     }
@@ -357,9 +481,9 @@ if (confirmDeleteBtn) {
     const mode = confirmDeleteBtn.dataset.mode;
 
     if (mode === "single") {
-      deleteMessage(confirmDeleteBtn.dataset.messageId);
+      await deleteMessage(confirmDeleteBtn.dataset.messageId);
     } else {
-      clearMessages();
+      await clearMessages();
     }
 
     closeDeleteModal();
