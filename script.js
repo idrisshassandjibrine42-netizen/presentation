@@ -14,7 +14,7 @@ let cancelDeleteBtn = document.getElementById("cancelDeleteBtn");
 let deleteModalTitle = document.getElementById("deleteModalTitle");
 let deleteModalDescription = document.getElementById("deleteModalDescription");
 const storageKey = "portfolio-messages";
-const deletePassword = "idriss2026";
+const deletePassword = "admin";
 const emailjsPublicKey = "DPjoBQNkGzYtckTHL";
 const emailjsServiceId = "service_tw1cv5z";
 const emailjsTemplateId = "template_mw0rm4d";
@@ -80,6 +80,7 @@ async function saveMessageToSupabase(message) {
 
   const { error } = await supabaseClient.from(supabaseTable).insert([
     {
+      id: message.id,
       name: message.name,
       email: message.email,
       message: message.message,
@@ -144,12 +145,18 @@ function formatDate(dateString) {
   });
 }
 
+function generateUUID() {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0,
+      v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 function normalizeMessages(messages) {
   return (Array.isArray(messages) ? messages : []).map((message) => ({
     ...message,
-    id:
-      message.id ||
-      `${message.createdAt || new Date().toISOString()}-${message.email || ""}-${message.name || ""}`,
+    id: message.id || generateUUID(),
   }));
 }
 
@@ -177,10 +184,19 @@ function createMessageCard(message) {
   const deleteButton = document.createElement("button");
   deleteButton.type = "button";
   deleteButton.className = "delete-message-btn";
-  deleteButton.textContent = "Supprimer";
-  deleteButton.addEventListener("click", () =>
-    openDeleteModal("single", message.id),
-  );
+  deleteButton.textContent = "✕";
+  deleteButton.title = "Supprimer ce message";
+  deleteButton.addEventListener("click", async () => {
+    const normalizedMessages = normalizeMessages(getLocalMessages());
+    const nextMessages = normalizedMessages.filter(
+      (msg) => msg.id !== message.id,
+    );
+    saveLocalMessages(nextMessages);
+    await loadMessages();
+    if (formStatus) {
+      formStatus.textContent = "Message supprimé.";
+    }
+  });
 
   header.append(meta, deleteButton);
 
@@ -392,6 +408,7 @@ if (contactForm) {
     }
 
     const newMessage = {
+      id: generateUUID(),
       name,
       email,
       message,
@@ -446,19 +463,24 @@ if (contactForm) {
 }
 
 if (clearMessagesBtn) {
-  clearMessagesBtn.addEventListener("click", () => {
-    if (!useSupabase) {
-      const savedMessages = localStorage.getItem(storageKey);
+  clearMessagesBtn.addEventListener("click", async () => {
+    const savedMessages = localStorage.getItem(storageKey);
 
-      if (!savedMessages) {
-        if (formStatus) {
-          formStatus.textContent = "Aucun message à supprimer.";
-        }
-        return;
+    if (!savedMessages) {
+      if (formStatus) {
+        formStatus.textContent = "Aucun message à supprimer.";
       }
+      return;
     }
 
-    openDeleteModal("all");
+    // Demander confirmation
+    if (confirm("Êtes-vous sûr de vouloir supprimer TOUS les messages ?")) {
+      localStorage.removeItem(storageKey);
+      await loadMessages();
+      if (formStatus) {
+        formStatus.textContent = "Tous les messages ont été supprimés.";
+      }
+    }
   });
 }
 
