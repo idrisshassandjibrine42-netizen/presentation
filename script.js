@@ -18,6 +18,8 @@ const deletePassword = "admin";
 const emailjsPublicKey = "DPjoBQNkGzYtckTHL";
 const emailjsServiceId = "service_tw1cv5z";
 const emailjsTemplateId = "template_mw0rm4d";
+const emailjsAutoReplyTemplateId = "template_mlqqugo"; // ID réel du template auto-réponse EmailJS, différent de emailjsTemplateId
+// Dans le template auto-réponse EmailJS, utilisez {{auto_reply_text}} pour le contenu envoyé au visiteur.
 
 // Configurez ces valeurs avec votre projet Supabase.
 const supabaseUrl = "https://nhyefzldxwfvqujbqraa.supabase.co";
@@ -378,6 +380,38 @@ async function sendContactMessage(name, email, message) {
   });
 }
 
+async function sendAutoReply(name, email) {
+  const hasMissingConfig =
+    !emailjsPublicKey ||
+    !emailjsServiceId ||
+    !emailjsAutoReplyTemplateId ||
+    emailjsPublicKey.includes("YOUR_") ||
+    emailjsServiceId.includes("YOUR_") ||
+    emailjsAutoReplyTemplateId.includes("YOUR_");
+
+  if (hasMissingConfig) {
+    throw new Error(
+      "EmailJS auto-réponse non configurée. Vérifie le template auto-reply dans script.js.",
+    );
+  }
+
+  if (emailjsTemplateId === emailjsAutoReplyTemplateId) {
+    throw new Error(
+      "Le template de réponse automatique ne doit pas être le même que le template de notification.",
+    );
+  }
+
+  emailjs.init({ publicKey: emailjsPublicKey });
+
+  await emailjs.send(emailjsServiceId, emailjsAutoReplyTemplateId, {
+    to_name: name,
+    to_email: email,
+    reply_to: "contact@votresite.com",
+    auto_reply_text:
+      "Merci beaucoup pour votre message ! Votre message me motive davantage pour la suite de mon parcours et ça me fait très plaisir. ",
+  });
+}
+
 if (contactForm) {
   contactForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -435,12 +469,13 @@ if (contactForm) {
       saveLocalMessages(messages);
     }
 
-    // Essayer d'envoyer l'email (optionnel)
+    // Essayer d'envoyer l'email au propriétaire puis une auto-réponse au contacteur.
     try {
       await sendContactMessage(name, email, message);
+      await sendAutoReply(name, email);
     } catch (error) {
       emailError = error;
-      console.warn("L'envoi par email a échoué", error);
+      console.warn("L'envoi par email ou l'auto-réponse a échoué", error);
     }
 
     await loadMessages();
@@ -451,8 +486,8 @@ if (contactForm) {
         ? "Votre message a été partagé avec tous!"
         : "Message enregistré localement.";
       formStatus.textContent = emailError
-        ? baseMessage + " (Email non envoyé)"
-        : baseMessage;
+        ? baseMessage + " (Email ou auto-réponse non envoyée)"
+        : baseMessage + " (Auto-réponse envoyée au contacteur)";
     }
 
     if (submitButton) {

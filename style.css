@@ -191,6 +191,14 @@ section {
   min-height: 24px;
 }
 
+.contact-note {
+  max-width: 600px;
+  margin: 10px auto 0;
+  color: #e2e8f0;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
 .message-inbox {
   max-width: 800px;
   margin: 30px auto 0;
