@@ -96,6 +96,10 @@ header {
   line-height: 1.8;
 }
 
+.hero-content .btn {
+  margin-right: 15px;
+}
+
 .btn {
   display: inline-block;
   padding: 12px 30px;
@@ -398,6 +402,7 @@ footer {
     text-decoration: none;
     border-radius: 30px;
     transition: 0.3s;
+    margin-top: 20px;
   }
 
   .btn:hover {
